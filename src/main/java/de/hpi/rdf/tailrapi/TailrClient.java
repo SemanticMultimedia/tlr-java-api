@@ -42,7 +42,7 @@ public class TailrClient {
     public static TailrClient getInstance() {
         if (instance == null) {
             try {
-                instance = new TailrClient("http://tailr.s16a.org/", "mgns", "aa560cf17b994ddc640c6795fa54a20053aea8cd");
+                instance = new TailrClient("http://tailr.s16a.org/", "mgns", "");
             } catch (URISyntaxException e) {
                 e.printStackTrace();
             }
