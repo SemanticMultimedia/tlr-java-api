@@ -2,6 +2,7 @@ package de.hpi.rdf.tailrapi;
 
 import org.apache.jena.atlas.web.HttpException;
 import org.apache.jena.graph.Graph;
+import org.joda.time.DateTime;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -72,5 +73,29 @@ public class TailrClientTest {
             }
         }
 
+    }
+
+    @Test
+    public void testTailrGetDelta() throws URISyntaxException, IOException {
+        TailrClient tlr = TailrClient.getInstance("http://tailr.s16a.org/", "santifa", "");
+        Repository repo = new Repository("santifa", "dwerft");
+        DateTime t = new DateTime();
+        Memento mem = new Memento(repo, "http://example.org", t);
+
+        Delta d = tlr.getDelta(mem);
+        Assert.assertNotNull(d);
+        Assert.assertFalse(d.getAddedTriples().isEmpty());
+        Assert.assertFalse(d.getRemovedTriples().isEmpty());
+    }
+
+    @Test
+    public void testDeltaToSparqlConversion() {
+        Delta d = new Delta();
+        d.getAddedTriples().add("<http://filmontology.org/resource/Project/3298438> <http://filmontology.org/ontology/1.0/identifier> \"3298438\"^^<http://www.w3.org/2001/XMLSchema#int> .");
+        d.getRemovedTriples().add("<http://filmontology.org/resource/Cast/12312> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://filmontology.org/ontology/1.0/Cast> .");
+        d.getRemovedTriples().add("<http://filmontology.org/resource/Cast/984745> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://filmontology.org/ontology/1.0/Cast> .");
+        d.getRemovedTriples().add("<http://filmontology.org/resource/Project/3298438> <http://filmontology.org/ontology/1.0/title> \"Frog King Reloaded\"^^<http://www.w3.org/2001/XMLSchema#string> .");
+
+        Assert.assertEquals("", d.convertToSparql());
     }
 }

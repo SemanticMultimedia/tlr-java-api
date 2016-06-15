@@ -2,21 +2,17 @@ package de.hpi.rdf.tailrapi;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.inject.Guice;
-import com.google.inject.Injector;
 import com.google.inject.Singleton;
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
+import org.joda.time.DateTime;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -39,7 +35,7 @@ public class TailrClient {
     private String user;
     private String token;
 
-    public static TailrClient getInstance() {
+    protected static TailrClient getInstance() {
         if (instance == null) {
             try {
                 instance = new TailrClient("http://tailr.s16a.org/", "mgns", "");
@@ -48,6 +44,17 @@ public class TailrClient {
             }
         }
 
+        return instance;
+    }
+
+    public static TailrClient getInstance(String tailrUri, String user, String token) {
+        if (instance == null) {
+            try {
+                instance = new TailrClient(tailrUri, user, token);
+            } catch (URISyntaxException e) {
+                e.printStackTrace();
+            }
+        }
         return instance;
     }
 
@@ -186,6 +193,20 @@ public class TailrClient {
         return mementos;
     }
 
+    /**
+     * Gets last stored {@link Memento}. Actually a fake method generating
+     * a memento uri with the current date. Since the tailr system goes back to
+     * the last stored time point this is a valid method.
+     *
+     * @param repo the repository
+     * @param key  the key
+     * @return the latest stored memento
+     */
+    public Memento getLatestMemento(Repository repo, String key) {
+        DateTime t = new DateTime();
+        return new Memento(repo, key, t);
+    }
+
     public StatusLine deleteMemento(Memento m) {
         HttpDelete httpDel = null;
         try {
@@ -201,5 +222,45 @@ public class TailrClient {
         HttpResponse response = getResponse(httpDel);
 
         return response.getStatusLine();
+    }
+
+    /**
+     * Retrieves a {@link Delta} for a given {@link Memento}.
+     * The delta designates the difference between the given memento
+     * and the one before.
+     *
+     * @param mem a given memento
+     * @return the delta between the given and the one before
+     * @throws IOException        the io exception
+     * @throws URISyntaxException the uri syntax exception
+     */
+    public Delta getDelta(Memento mem) throws IOException, URISyntaxException {
+        Delta d = new Delta();
+
+        HttpGet get = getGet(mem.getMementoUri(tailrUri) + "&delta=true");
+        JsonNode jsonNode = getResponseAsJson(get);
+
+        for (JsonNode node : jsonNode.get("added")) {
+            d.getAddedTriples().add(node.textValue());
+        }
+        for (JsonNode node : jsonNode.get("deleted")) {
+            d.getRemovedTriples().add(node.textValue());
+        }
+        return d;
+    }
+
+    /**
+     * Gets the {@link Delta} for the latest stored {@link Memento} and the memento
+     * before.
+     *
+     * @param repo the repository
+     * @param key  the key
+     * @return the latest delta
+     * @throws IOException        the io exception
+     * @throws URISyntaxException the uri syntax exception
+     */
+    public Delta getLatestDelta(Repository repo, String key) throws IOException, URISyntaxException {
+        Memento mem = getLatestMemento(repo, key);
+        return getDelta(mem);
     }
 }

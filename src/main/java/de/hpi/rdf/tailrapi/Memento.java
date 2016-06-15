@@ -60,4 +60,7 @@ public class Memento {
         return new URI(TailrClient.getInstance().getTailrUri().toString() + "api/" + repository.getUser() + "/" + repository.getName() + "?key=" + URLEncoder.encode(key, "UTF8") + "&datetime=" + fmtQS.print(dateTime));
     }
 
+    public URI getMementoUri(URI tailrUri) throws UnsupportedEncodingException, URISyntaxException {
+        return new URI(tailrUri.toString() + "api/" + repository.getUser() + "/" + repository.getName() + "?key=" + URLEncoder.encode(key, "UTF8") + "&datetime=" + fmtQS.print(dateTime));
+    }
 }
