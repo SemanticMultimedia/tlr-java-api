@@ -37,6 +37,25 @@ public class Delta {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Delta delta = (Delta) o;
+
+        if (!addedTriples.equals(delta.addedTriples)) return false;
+        return removedTriples.equals(delta.removedTriples);
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = addedTriples.hashCode();
+        result = 31 * result + removedTriples.hashCode();
+        return result;
+    }
+
+    @Override
     public String toString() {
         return "Delta{" +
                 "addedTriples=" + addedTriples +

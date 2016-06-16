@@ -99,6 +99,22 @@ public class TailrClientTest {
     }
 
     @Test
+    public void testPutMemento() throws URISyntaxException, IOException {
+        // insert key for test
+        TailrClient tlr = TailrClient.getInstance("http://tailr.s16a.org/", "santifa", "");
+        Repository repo = new Repository("santifa", "dwerft");
+        String key = "http://example.org";
+        String expected = "<http://filmontology.org/resource/Cast/12312> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://filmontology.org/ontology/1.0/Cast> .";
+        String content = "<http://filmontology.org/resource/Cast/12313> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://filmontology.org/ontology/1.0/Cast> .";
+
+        Delta d = tlr.putMemento(repo, key, content);
+        Delta expectedDelta = new Delta();
+        expectedDelta.getRemovedTriples().add(expected);
+        expectedDelta.getAddedTriples().add(content);
+        Assert.assertThat(expectedDelta, is(d));
+    }
+
+    @Test
     public void testTailrGetDelta() throws URISyntaxException, IOException {
         TailrClient tlr = TailrClient.getInstance("http://tailr.s16a.org/", "santifa", "");
         Repository repo = new Repository("santifa", "dwerft");

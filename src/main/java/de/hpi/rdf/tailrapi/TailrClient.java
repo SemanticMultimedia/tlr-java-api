@@ -5,22 +5,29 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Singleton;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.cache.HeaderConstants;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.entity.BasicHttpEntity;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,6 +38,8 @@ import java.util.List;
 public class TailrClient {
 
     private static Logger L = LogManager.getLogger(TailrClient.class);
+
+    private static final Charset UTF8 = StandardCharsets.UTF_8;
 
     private static TailrClient instance;
 
@@ -96,14 +105,21 @@ public class TailrClient {
         instance = null;
     }
 
-    public HttpGet getGet(String url) {
+    private HttpGet getGet(String url) {
         HttpGet request = new HttpGet(url);
         return request;
     }
 
-    public HttpGet getAuthGet(String url) {
+    private HttpGet getAuthGet(String url) {
         HttpGet request = new HttpGet(url);
-        request.addHeader("Authorization", "token " + this.token);
+        request.addHeader(HeaderConstants.AUTHORIZATION, "token " + this.token);
+        return request;
+    }
+
+    private HttpPut getAuthPut(String url) {
+        HttpPut request = new HttpPut(url);
+        request.addHeader(HeaderConstants.AUTHORIZATION, "token " + this.token);
+        request.addHeader("Content-Type", "application/n-triples");
         return request;
     }
 
@@ -129,7 +145,7 @@ public class TailrClient {
 
         String responseString = null;
         try {
-            responseString = EntityUtils.toString(entity, "UTF-8");
+            responseString = EntityUtils.toString(entity, UTF8);
             return (new ObjectMapper()).readTree(responseString);
         } catch (IOException e) {
             L.error("Failed reading JSON response.", e);
@@ -167,7 +183,7 @@ public class TailrClient {
 
             String responseString = null;
             try {
-                responseString = EntityUtils.toString(entity, "UTF-8");
+                responseString = EntityUtils.toString(entity, UTF8);
 
                 // termination
                 if (responseString.length() == 0) {
@@ -191,7 +207,7 @@ public class TailrClient {
     public List<Memento> getMementos(Repository repo, String key) throws IOException {
         List<Memento> mementos = new ArrayList<Memento>();
 
-        HttpGet httpGet = getGet(tailrUri.toString() + "api/" + repo.getUser() + "/" + repo.getName() + "?key=" + URLEncoder.encode(key, "UTF8") + "&timemap=true");
+        HttpGet httpGet = getGet(tailrUri.toString() + "api/" + repo.getUser() + "/" + repo.getName() + "?key=" + URLEncoder.encode(key, UTF8.name()) + "&timemap=true");
 
         JsonNode jsonNode = getResponseAsJson(httpGet);
 
@@ -271,5 +287,32 @@ public class TailrClient {
     public Delta getLatestDelta(Repository repo, String key) throws IOException, URISyntaxException {
         Memento mem = getLatestMemento(repo, key);
         return getDelta(mem);
+    }
+
+    /**
+     * Creates a new {@link Memento} version and
+     * stores the given content to tailr. The Memento is inserted
+     * as last version and the corresponding delta is returned.
+     *
+     * @param repo    the memento repository
+     * @param key     the memento key
+     * @param content the storage content
+     * @return the delta between the uploaded and previous version
+     * @throws IOException        if the put fails
+     * @throws URISyntaxException if the key can not be parsed
+     */
+    public Delta putMemento(Repository repo, String key, String content) throws IOException, URISyntaxException {
+        HttpPut put = getAuthPut(tailrUri.toString() + "api/" + repo.getUser() + "/" + repo.getName()
+                                + "?key=" + URLEncoder.encode(key, UTF8.name()));
+        BasicHttpEntity entity = new BasicHttpEntity();
+        entity.setContent(new ByteArrayInputStream(content.getBytes(UTF8)));
+        put.setEntity(entity);
+
+        HttpResponse response = getResponse(put);
+        if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
+            return getLatestDelta(repo, key);
+        } else {
+            throw new IOException("Failed to put a new memento version. " + response.getStatusLine());
+        }
     }
 }
