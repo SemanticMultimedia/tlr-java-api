@@ -7,8 +7,11 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
+
+import static org.hamcrest.CoreMatchers.is;
 
 /**
  * Created by magnus on 01.06.16.
@@ -73,6 +76,26 @@ public class TailrClientTest {
             }
         }
 
+    }
+
+    @Test
+    public void testCreateAndCloseClient() throws URISyntaxException {
+        TailrClient tlr = TailrClient.getInstance();
+        Assert.assertThat("", is(tlr.getToken()));
+        Assert.assertThat("mgns", is(tlr.getUser()));
+        Assert.assertThat(new URI("http://tailr.s16a.org/"), is(tlr.getTailrUri()));
+        tlr.close();
+
+        tlr = TailrClient.getInstance("http://tailr.s16a.org/", "santifa", "123");
+        Assert.assertThat("123", is(tlr.getToken()));
+        Assert.assertThat("santifa", is(tlr.getUser()));
+        Assert.assertThat(new URI("http://tailr.s16a.org/"), is(tlr.getTailrUri()));
+        tlr.close();
+    }
+
+    @Test(expected = URISyntaxException.class)
+    public void testWrongBaseUri() throws URISyntaxException {
+        TailrClient.getInstance("mmn:\\ksdfjasa", "", "");
     }
 
     @Test

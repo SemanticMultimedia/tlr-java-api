@@ -12,6 +12,8 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 
 import java.io.IOException;
@@ -28,6 +30,8 @@ import java.util.List;
 @Singleton
 public class TailrClient {
 
+    private static Logger L = LogManager.getLogger(TailrClient.class);
+
     private static TailrClient instance;
 
     private URI tailrUri;
@@ -35,24 +39,32 @@ public class TailrClient {
     private String user;
     private String token;
 
-    protected static TailrClient getInstance() {
-        if (instance == null) {
-            try {
-                instance = new TailrClient("http://tailr.s16a.org/", "mgns", "");
-            } catch (URISyntaxException e) {
-                e.printStackTrace();
-            }
-        }
-
-        return instance;
+    /**
+     * Get the test instance.
+     *
+     * @return an instance to test the tailr system
+     * @throws URISyntaxException if the provided base URI is not valid
+     */
+    protected static TailrClient getInstance() throws URISyntaxException {
+        return getInstance("http://tailr.s16a.org/", "mgns", "");
     }
 
-    public static TailrClient getInstance(String tailrUri, String user, String token) {
+    /**
+     * Gets an instance of the tailr client.
+     *
+     * @param tailrUri the base URI for tailr
+     * @param user     the tailr user
+     * @param token    the authentication token
+     * @return a new instance or an old one
+     * @throws URISyntaxException if the provided base URI is not valid
+     */
+    public static TailrClient getInstance(String tailrUri, String user, String token) throws URISyntaxException {
         if (instance == null) {
             try {
                 instance = new TailrClient(tailrUri, user, token);
             } catch (URISyntaxException e) {
-                e.printStackTrace();
+                L.error("Unable to parse tailr base URI " + tailrUri, e);
+                throw new URISyntaxException(tailrUri, "Unale to parse tailr base URI " + e.getMessage());
             }
         }
         return instance;
@@ -60,7 +72,6 @@ public class TailrClient {
 
     private TailrClient(String tailrUri, String user, String token) throws URISyntaxException {
         this.tailrUri = new URI(tailrUri);
-
         this.user = user;
         this.token = token;
     }
@@ -77,8 +88,12 @@ public class TailrClient {
         return token;
     }
 
+    /**
+     * Close the tailr client. Actually this only
+     * removes the pointer to the client instance.
+     */
     public void close() {
-
+        instance = null;
     }
 
     public HttpGet getGet(String url) {
@@ -89,7 +104,6 @@ public class TailrClient {
     public HttpGet getAuthGet(String url) {
         HttpGet request = new HttpGet(url);
         request.addHeader("Authorization", "token " + this.token);
-
         return request;
     }
 
@@ -97,33 +111,29 @@ public class TailrClient {
         HttpClient httpClient = HttpClients.custom().build();
 
         try {
-            System.out.println(request.getMethod() + " " + request.getURI());
-
+            L.info("Requesting: " + request.getMethod() + " " + request.getURI());
             HttpResponse response = httpClient.execute(request);
-
-            System.out.println(response.getStatusLine());
+            L.info("Response state: " + response.getStatusLine());
 
             return response;
         } catch (IOException e) {
-            e.printStackTrace();
+            L.error("HTTP request failed. Reason: ", e);
             return null;
         }
     }
 
-    public JsonNode getResponseAsJson(HttpUriRequest request) {
+    public JsonNode getResponseAsJson(HttpUriRequest request) throws IOException {
         request.addHeader("Accept", "application/json");
         HttpResponse response = getResponse(request);
-
         HttpEntity entity = response.getEntity();
 
         String responseString = null;
         try {
             responseString = EntityUtils.toString(entity, "UTF-8");
-            JsonNode jsonNode = (new ObjectMapper()).readTree(responseString);
-            return jsonNode;
+            return (new ObjectMapper()).readTree(responseString);
         } catch (IOException e) {
-            e.printStackTrace();
-            return null;
+            L.error("Failed reading JSON response.", e);
+            throw new IOException("Failed reading JSON response.", e);
         }
     }
 
@@ -146,7 +156,7 @@ public class TailrClient {
         return repos;
     }
 
-    public List<String> getRepositoryKeys(Repository repository) throws IOException {
+    public List<String> getRepositoryKeys(Repository repository) {
         List<String> keys = new ArrayList<String>();
 
         for (int page = 1; ; page = page + 1) {
@@ -170,7 +180,7 @@ public class TailrClient {
                     keys.add(key);
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                L.error("Failed to get repository keys on page " + page, e);
                 break;
             }
         }
@@ -207,14 +217,13 @@ public class TailrClient {
         return new Memento(repo, key, t);
     }
 
-    public StatusLine deleteMemento(Memento m) {
+    public StatusLine deleteMemento(Memento m) throws IOException {
         HttpDelete httpDel = null;
         try {
-            httpDel = new HttpDelete(m.getMementoUri().toString() + "&update=true");
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
+            httpDel = new HttpDelete(m.getMementoUri(tailrUri).toString() + "&update=true");
+        } catch (UnsupportedEncodingException | URISyntaxException e) {
+            L.error("Failed to create memento URI.", e);
+            throw new IOException("Failed to create memento URI.", e);
         }
 
         httpDel.addHeader("Authorization", "token " + this.token);
