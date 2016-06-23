@@ -32,8 +32,29 @@ public class Delta {
         return removedTriples;
     }
 
-    public String convertToSparql() {
-        return "";
+    public String getInsertQuery() {
+        return "Insert data {" + buildQueryBody(addedTriples) + "}";
+    }
+
+
+    public String getInsertQuery(String graphUri) {
+        return "Insert data { graph <" + graphUri + "> {" + buildQueryBody(addedTriples) + "}}";
+    }
+
+    public String getDeleteQuery() {
+        return "Delete data {" + buildQueryBody(removedTriples) + "}";
+    }
+
+    public String getDeleteQuery(String graphUri) {
+        return "Delete data { graph <" + graphUri + "> {" + buildQueryBody(removedTriples) + "}}";
+    }
+
+    private String buildQueryBody(List<String> triples) {
+        StringBuilder builder = new StringBuilder();
+        for (String triple : triples) {
+            builder.append(triple).append(" ");
+        }
+        return builder.toString();
     }
 
     @Override
@@ -62,4 +83,5 @@ public class Delta {
                 ", removedTriples=" + removedTriples +
                 '}';
     }
+
 }

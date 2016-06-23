@@ -129,12 +129,28 @@ public class TailrClientTest {
 
     @Test
     public void testDeltaToSparqlConversion() {
+        String graphUri = "http://example.org/";
         Delta d = new Delta();
         d.getAddedTriples().add("<http://filmontology.org/resource/Project/3298438> <http://filmontology.org/ontology/1.0/identifier> \"3298438\"^^<http://www.w3.org/2001/XMLSchema#int> .");
         d.getRemovedTriples().add("<http://filmontology.org/resource/Cast/12312> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://filmontology.org/ontology/1.0/Cast> .");
         d.getRemovedTriples().add("<http://filmontology.org/resource/Cast/984745> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://filmontology.org/ontology/1.0/Cast> .");
         d.getRemovedTriples().add("<http://filmontology.org/resource/Project/3298438> <http://filmontology.org/ontology/1.0/title> \"Frog King Reloaded\"^^<http://www.w3.org/2001/XMLSchema#string> .");
 
-        Assert.assertEquals("", d.convertToSparql());
+        Assert.assertEquals("Insert data {" +
+                "<http://filmontology.org/resource/Project/3298438> <http://filmontology.org/ontology/1.0/identifier> \"3298438\"^^<http://www.w3.org/2001/XMLSchema#int> . }"
+                , d.getInsertQuery());
+        Assert.assertEquals("Insert data { graph <" + graphUri + "> {" +
+                        "<http://filmontology.org/resource/Project/3298438> <http://filmontology.org/ontology/1.0/identifier> \"3298438\"^^<http://www.w3.org/2001/XMLSchema#int> . }}"
+                , d.getInsertQuery(graphUri));
+        Assert.assertEquals("Delete data { graph <" + graphUri + "> {"
+                + "<http://filmontology.org/resource/Cast/12312> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://filmontology.org/ontology/1.0/Cast> . "
+                + "<http://filmontology.org/resource/Cast/984745> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://filmontology.org/ontology/1.0/Cast> . "
+                + "<http://filmontology.org/resource/Project/3298438> <http://filmontology.org/ontology/1.0/title> \"Frog King Reloaded\"^^<http://www.w3.org/2001/XMLSchema#string> . }}"
+                , d.getDeleteQuery(graphUri));
+        Assert.assertEquals("Delete data {"
+                        + "<http://filmontology.org/resource/Cast/12312> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://filmontology.org/ontology/1.0/Cast> . "
+                        + "<http://filmontology.org/resource/Cast/984745> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://filmontology.org/ontology/1.0/Cast> . "
+                        + "<http://filmontology.org/resource/Project/3298438> <http://filmontology.org/ontology/1.0/title> \"Frog King Reloaded\"^^<http://www.w3.org/2001/XMLSchema#string> . }"
+                , d.getDeleteQuery());
     }
 }
