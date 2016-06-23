@@ -20,9 +20,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
@@ -306,6 +304,34 @@ public class TailrClient {
                                 + "?key=" + URLEncoder.encode(key, UTF8.name()));
         BasicHttpEntity entity = new BasicHttpEntity();
         entity.setContent(new ByteArrayInputStream(content.getBytes(UTF8)));
+        put.setEntity(entity);
+
+        HttpResponse response = getResponse(put);
+        if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
+            return getLatestDelta(repo, key);
+        } else {
+            throw new IOException("Failed to put a new memento version. " + response.getStatusLine());
+        }
+    }
+
+    /**
+     * Creates a new {@link Memento} version and stores
+     * the given file to tailr. The memento is inserted as last version
+     * and the delta is returned.
+     *
+     * @param repo    the tailr repository
+     * @param key     the tailr key
+     * @param content the rdf file
+     * @return the delta
+     * @throws IOException        if the put fails
+     * @throws URISyntaxException if the key can not be parsed
+     */
+    public Delta putMemento(Repository repo, String key, File content) throws IOException, URISyntaxException {
+        HttpPut put = getAuthPut(tailrUri.toString() + "api/" + repo.getUser() + "/" + repo.getName()
+                + "?key=" + URLEncoder.encode(key, UTF8.name()));
+        BasicHttpEntity entity = new BasicHttpEntity();
+
+        entity.setContent(new FileInputStream(content));
         put.setEntity(entity);
 
         HttpResponse response = getResponse(put);
