@@ -16,8 +16,8 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.entity.BasicHttpEntity;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 
 import java.io.*;
@@ -33,7 +33,7 @@ import java.util.List;
  * Created by magnus on 01.06.16.
  */
 @Singleton
-public class TailrClient {
+public class TailrClient implements Tailr {
 
     private static Logger L = LogManager.getLogger(TailrClient.class);
 
@@ -121,7 +121,7 @@ public class TailrClient {
         return request;
     }
 
-    public HttpResponse getResponse(HttpUriRequest request) {
+    private HttpResponse getResponse(HttpUriRequest request) {
         HttpClient httpClient = HttpClients.custom().build();
 
         try {
@@ -136,7 +136,7 @@ public class TailrClient {
         }
     }
 
-    public JsonNode getResponseAsJson(HttpUriRequest request) throws IOException {
+    private JsonNode getResponseAsJson(HttpUriRequest request) throws IOException {
         request.addHeader("Accept", "application/json");
         HttpResponse response = getResponse(request);
         HttpEntity entity = response.getEntity();
