@@ -59,7 +59,7 @@ public interface Tailr {
      * @param key  the key
      * @return the latest stored memento
      */
-    public Memento getLatestMemento(Repository repo, String key);
+    public Memento getLatestMemento(Repository repo, String key) throws IOException;
 
     /**
      * Delete a specificmemento .

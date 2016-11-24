@@ -128,6 +128,18 @@ public class TailrClientTest {
     }
 
     @Test
+    public void testTailrGetLatestDelta() throws URISyntaxException, IOException {
+        TailrClient tlr = TailrClient.getInstance("http://tailr.s16a.org/", "santifa", "");
+        Repository repo = new Repository("santifa", "dwerft");
+        DateTime t = new DateTime();
+
+        Delta d = tlr.getLatestDelta(repo, "http://example.org");
+        Assert.assertNotNull(d);
+        Assert.assertFalse(d.getAddedTriples().isEmpty());
+        Assert.assertFalse(d.getRemovedTriples().isEmpty());
+    }
+
+    @Test
     public void testDeltaToSparqlConversion() {
         String graphUri = "http://example.org/";
         Delta d = new Delta();

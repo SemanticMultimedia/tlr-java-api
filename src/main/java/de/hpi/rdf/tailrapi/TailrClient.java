@@ -18,7 +18,6 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.joda.time.DateTime;
 
 import java.io.*;
 import java.net.URI;
@@ -218,17 +217,20 @@ public class TailrClient implements Tailr {
     }
 
     /**
-     * Gets last stored {@link Memento}. Actually a fake method generating
-     * a memento uri with the current date. Since the tailr system goes back to
-     * the last stored time point this is a valid method.
+     * Gets last stored {@link Memento}. It asks for the latest timestamp
+     * with all mementos and takes the last one
      *
      * @param repo the repository
      * @param key  the key
      * @return the latest stored memento
+     * @throws IOException if an IO error occurred or no memento was found.
      */
-    public Memento getLatestMemento(Repository repo, String key) {
-        DateTime t = new DateTime();
-        return new Memento(repo, key, t);
+    public Memento getLatestMemento(Repository repo, String key) throws IOException {
+        List<Memento> mementos = getMementos(repo, key);
+        if (mementos.isEmpty()) {
+            throw new IOException("No memento found.");
+        }
+        return mementos.get(0);
     }
 
     public StatusLine deleteMemento(Memento m) throws IOException {
@@ -279,8 +281,8 @@ public class TailrClient implements Tailr {
      * @param repo the repository
      * @param key  the key
      * @return the latest delta
-     * @throws IOException        the io exception
-     * @throws URISyntaxException the uri syntax exception
+     * @throws IOException        if an IO error occurred or no corresponding memento was found.
+     * @throws URISyntaxException if no valid key was provided
      */
     public Delta getLatestDelta(Repository repo, String key) throws IOException, URISyntaxException {
         Memento mem = getLatestMemento(repo, key);
