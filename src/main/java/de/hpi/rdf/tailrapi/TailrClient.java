@@ -227,6 +227,7 @@ public class TailrClient implements Tailr {
      */
     public Memento getLatestMemento(Repository repo, String key) throws IOException {
         List<Memento> mementos = getMementos(repo, key);
+        L.info("Got timemap:\n" + prettifyTimemap(mementos));
         if (mementos.isEmpty()) {
             throw new IOException("No memento found.");
         }
@@ -342,5 +343,21 @@ public class TailrClient implements Tailr {
         } else {
             throw new IOException("Failed to put a new memento version. " + response.getStatusLine());
         }
+    }
+
+    /* prettify the output from tailr */
+    public String prettifyTimemap(List<Memento> revisions) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("\n<------- Timemap ------->\n");
+
+        if (revisions.isEmpty()) {
+            builder.append("No revision found.\n");
+        } else {
+            for (int i = 0; i < revisions.size(); i++) {
+                builder.append("Revision ").append(i).append(": ")
+                        .append(revisions.get(i).getDateTime()).append("\n");
+            }
+        }
+        return builder.toString();
     }
 }

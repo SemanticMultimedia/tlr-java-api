@@ -78,9 +78,9 @@ public class Delta {
 
     @Override
     public String toString() {
-        return "Delta{" +
+        return "Delta{\n" +
                 "addedTriples=" + addedTriples +
-                ", removedTriples=" + removedTriples +
+                "\nremovedTriples=" + removedTriples +
                 '}';
     }
 
