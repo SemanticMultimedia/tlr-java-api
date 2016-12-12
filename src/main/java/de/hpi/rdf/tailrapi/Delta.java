@@ -6,11 +6,15 @@ import java.util.List;
 /**
  * A {@link Delta} refers to the difference between two
  * mementos version.
- *
+ * <p>
  * Given a certain {@link Memento} a Delta contains the
  * added and removed triples from the previous memento to
  * the given one.
- *
+ * <p>
+ * It can convert itself into a SPARQL query for inserting or deleting data.
+ * The used data corresponds to the added and removed triples.<br/>
+ * An empty delta produces no queries which are empty strings.
+ * <p>
  * Created by Henrik Jürges (juerges.henrik@gmail.com)
  */
 public class Delta {
@@ -19,42 +23,107 @@ public class Delta {
 
     private List<String> removedTriples;
 
+    /**
+     * Instantiates a new Delta.
+     */
     public Delta() {
-        this.addedTriples = new ArrayList<String>();
-        this.removedTriples = new ArrayList<String>();
+        this.addedTriples = new ArrayList<>();
+        this.removedTriples = new ArrayList<>();
     }
 
+    /**
+     * Gets added triples.
+     *
+     * @return the added triples
+     */
     public List<String> getAddedTriples() {
         return addedTriples;
     }
 
+    /**
+     * Gets removed triples.
+     *
+     * @return the removed triples
+     */
     public List<String> getRemovedTriples() {
         return removedTriples;
     }
 
-    public String getInsertQuery() {
-        return "Insert data {" + buildQueryBody(addedTriples) + "}";
-    }
-
-
+    /**
+     * Gets an insert query which is build of the triples
+     * within the added triples list. Also it appends an empty where clause, to please jena.
+     *
+     * @param graphUri the graph uri
+     * @return the insert query or an empty set if no triples are present
+     */
     public String getInsertQuery(String graphUri) {
-        return "Insert data { graph <" + graphUri + "> {" + buildQueryBody(addedTriples) + "}}";
+        if (addedTriples.isEmpty()) return "";
+        return "Insert { Graph <" + graphUri + "> {\n" + buildInsertBody(addedTriples) + "} }"
+                + "Where {\n" + "}\n";
     }
 
-    public String getDeleteQuery() {
-        return "Delete data {" + buildQueryBody(removedTriples) + "}";
-    }
-
+    /**
+     * Gets a delete query which is build of the triples
+     * within the removed triples list.
+     *
+     * @param graphUri the graph uri
+     * @return the delete query or an empty string if no triples are present
+     */
     public String getDeleteQuery(String graphUri) {
-        return "Delete data { graph <" + graphUri + "> {" + buildQueryBody(removedTriples) + "}}";
+        if (removedTriples.isEmpty()) return "";
+        return "Delete { Graph <" + graphUri + "> {\n" + buildDeleteBody(removedTriples, graphUri);
     }
 
-    private String buildQueryBody(List<String> triples) {
+    /* an insert query is easier since we don'nt handle blank nodes */
+    private String buildInsertBody(List<String> triples) {
         StringBuilder builder = new StringBuilder();
         for (String triple : triples) {
-            builder.append(triple).append(" ");
+            builder.append(triple.replace("  ", " ")).append(" ");
         }
+        return builder.append("\n").toString();
+    }
+
+    /* handle blank nodes within triples which are converted into variables
+    * and added to a where clause for binding. This removes the maximum sub graph
+    * but it is possible that larger sub graphs are also deleted.
+    * TODO prevent sub graphs with more triples from deletion */
+    private String buildDeleteBody(List<String> triples, String graph) {
+        StringBuilder builder = new StringBuilder();
+        List<String> whereClause = new ArrayList<>();
+
+        for (String triple : handleBlankNodes(triples)) {
+            builder.append(triple.replace("_:", "?")).append(" ");
+            if (triple.contains("?")) whereClause.add(triple);
+        }
+        builder.append("} }\n");
+
+        /* handle using <> where clause */
+        //if (!whereClause.isEmpty())
+        builder.append("Where {\n");
+        for (String blankNode : whereClause) {
+            builder.append(blankNode).append(" ");
+        }
+        //if (!whereClause.isEmpty())
+        builder.append("}\n");
+
         return builder.toString();
+    }
+
+    /**
+     * Convert blank nodes in triples into variables for sparql.
+     * This the triples should be in NT syntax.
+     *
+     * @param triples the triples with possible blank nodes
+     * @return the list with variables for blank nodes
+     */
+    static List<String> handleBlankNodes(List<String> triples) {
+        List<String> handledTriples = new ArrayList<>();
+
+        for (String triple : triples) {
+            handledTriples.add(triple.replace("_:", "?"));
+        }
+
+        return handledTriples;
     }
 
     @Override
@@ -82,6 +151,23 @@ public class Delta {
                 "addedTriples=" + addedTriples +
                 "\nremovedTriples=" + removedTriples +
                 '}';
+    }
+
+    /**
+     * A convenient method for getting the resulting sparql queries.
+     * If booth queries are found their glued together with a ';'
+     *
+     * @param graph the graph for the query
+     * @return the sparql queries
+     */
+    public String toSparql(String graph) {
+        String insert = getInsertQuery(graph);
+        String delete = getDeleteQuery(graph);
+        if (!insert.isEmpty() && !delete.isEmpty()) {
+            return insert + "; " + delete;
+        } else {
+            return  getInsertQuery(graph) + " " + getDeleteQuery(graph);
+        }
     }
 
 }

@@ -2,13 +2,19 @@ package de.hpi.rdf.tailrapi;
 
 import org.apache.jena.atlas.web.HttpException;
 import org.apache.jena.graph.Graph;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.riot.Lang;
+import org.apache.jena.riot.RDFDataMgr;
 import org.joda.time.DateTime;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.io.StringWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -148,9 +154,6 @@ public class TailrClientTest {
         d.getRemovedTriples().add("<http://filmontology.org/resource/Cast/984745> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://filmontology.org/ontology/1.0/Cast> .");
         d.getRemovedTriples().add("<http://filmontology.org/resource/Project/3298438> <http://filmontology.org/ontology/1.0/title> \"Frog King Reloaded\"^^<http://www.w3.org/2001/XMLSchema#string> .");
 
-        Assert.assertEquals("Insert data {" +
-                "<http://filmontology.org/resource/Project/3298438> <http://filmontology.org/ontology/1.0/identifier> \"3298438\"^^<http://www.w3.org/2001/XMLSchema#int> . }"
-                , d.getInsertQuery());
         Assert.assertEquals("Insert data { graph <" + graphUri + "> {" +
                         "<http://filmontology.org/resource/Project/3298438> <http://filmontology.org/ontology/1.0/identifier> \"3298438\"^^<http://www.w3.org/2001/XMLSchema#int> . }}"
                 , d.getInsertQuery(graphUri));
@@ -159,10 +162,24 @@ public class TailrClientTest {
                 + "<http://filmontology.org/resource/Cast/984745> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://filmontology.org/ontology/1.0/Cast> . "
                 + "<http://filmontology.org/resource/Project/3298438> <http://filmontology.org/ontology/1.0/title> \"Frog King Reloaded\"^^<http://www.w3.org/2001/XMLSchema#string> . }}"
                 , d.getDeleteQuery(graphUri));
-        Assert.assertEquals("Delete data {"
-                        + "<http://filmontology.org/resource/Cast/12312> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://filmontology.org/ontology/1.0/Cast> . "
-                        + "<http://filmontology.org/resource/Cast/984745> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://filmontology.org/ontology/1.0/Cast> . "
-                        + "<http://filmontology.org/resource/Project/3298438> <http://filmontology.org/ontology/1.0/title> \"Frog King Reloaded\"^^<http://www.w3.org/2001/XMLSchema#string> . }"
-                , d.getDeleteQuery());
+    }
+
+    @Test
+    public void testPutBigFile() throws URISyntaxException, IOException {
+        TailrClient tlr = TailrClient.getInstance("http://tailr.s16a.org/", "santifa", "");
+        Repository repo = new Repository("santifa", "dwerft");
+        String key = "ontology";
+
+        /* load huge file */
+        URL file = getClass().getResource("/dwerft-ontology_v2.ttl");
+
+        Model m = ModelFactory.createDefaultModel();
+        RDFDataMgr.read(m, file.openStream(), Lang.TTL);
+        StringWriter writer = new StringWriter();
+        RDFDataMgr.write(writer, m, Lang.NTRIPLES);
+        String content = writer.getBuffer().toString();
+
+        Delta d = tlr.putMemento(repo, key, content);
+        System.out.println(d);
     }
 }

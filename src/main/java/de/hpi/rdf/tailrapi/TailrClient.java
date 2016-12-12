@@ -227,7 +227,7 @@ public class TailrClient implements Tailr {
      */
     public Memento getLatestMemento(Repository repo, String key) throws IOException {
         List<Memento> mementos = getMementos(repo, key);
-        L.info("Got timemap:\n" + prettifyTimemap(mementos));
+        //L.info("Got timemap:\n" + prettifyTimemap(mementos));
         if (mementos.isEmpty()) {
             throw new IOException("No memento found.");
         }
