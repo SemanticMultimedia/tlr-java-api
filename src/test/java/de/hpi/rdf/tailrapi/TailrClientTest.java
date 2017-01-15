@@ -180,7 +180,8 @@ public class TailrClientTest {
         String content = writer.getBuffer().toString();
 
         Delta d = tlr.putMemento(repo, key, content);
-        System.out.println(d);
+        System.out.println(tlr.prettifyTimemap(tlr.getMementos(repo, "ontology")));
+        tlr.deleteMemento(tlr.getLatestMemento(repo, "ontology"));
         System.out.println(tlr.prettifyTimemap(tlr.getMementos(repo, "ontology")));
     }
 }

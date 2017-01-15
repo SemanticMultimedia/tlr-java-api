@@ -204,15 +204,17 @@ public class TailrClient implements Tailr {
     }
 
     public List<Memento> getMementos(Repository repo, String key) throws IOException {
-        List<Memento> mementos = new ArrayList<Memento>();
+        List<Memento> mementos = new ArrayList<>();
 
         HttpGet httpGet = getGet(tailrUri.toString() + "api/" + repo.getUser() + "/" + repo.getName() + "?key=" + URLEncoder.encode(key, UTF8.name()) + "&timemap=true");
 
         JsonNode jsonNode = getResponseAsJson(httpGet);
 
-        for (JsonNode mementoNode: jsonNode.get("mementos").get("list")) {
-            Memento memento = new Memento(repo, key, mementoNode.get("datetime").textValue());
-            mementos.add(memento);
+        if (jsonNode.get("mementos") != null) {
+            for (JsonNode mementoNode: jsonNode.get("mementos").get("list")) {
+                Memento memento = new Memento(repo, key, mementoNode.get("datetime").textValue());
+                mementos.add(memento);
+            }
         }
 
         return mementos;
