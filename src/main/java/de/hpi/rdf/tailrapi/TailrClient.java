@@ -43,7 +43,10 @@ public class TailrClient implements Tailr {
     private URI tailrUri;
 
     private String user;
+
     private String token;
+
+    private boolean privateRepo;
 
     /**
      * Get the test instance.
@@ -52,7 +55,7 @@ public class TailrClient implements Tailr {
      * @throws URISyntaxException if the provided base URI is not valid
      */
     protected static TailrClient getInstance() throws URISyntaxException {
-        return getInstance("http://tailr.s16a.org/", "mgns", "");
+        return getInstance("http://tailr.s16a.org/", "mgns", "", false);
     }
 
     /**
@@ -64,10 +67,10 @@ public class TailrClient implements Tailr {
      * @return a new instance or an old one
      * @throws URISyntaxException if the provided base URI is not valid
      */
-    public static TailrClient getInstance(String tailrUri, String user, String token) throws URISyntaxException {
+    public static TailrClient getInstance(String tailrUri, String user, String token, boolean privateRepo) throws URISyntaxException {
         if (instance == null) {
             try {
-                instance = new TailrClient(tailrUri, user, token);
+                instance = new TailrClient(tailrUri, user, token, privateRepo);
             } catch (URISyntaxException e) {
                 L.error("Unable to parse tailr base URI " + tailrUri, e);
                 throw new URISyntaxException(tailrUri, "Unale to parse tailr base URI " + e.getMessage());
@@ -76,10 +79,11 @@ public class TailrClient implements Tailr {
         return instance;
     }
 
-    private TailrClient(String tailrUri, String user, String token) throws URISyntaxException {
+    private TailrClient(String tailrUri, String user, String token, boolean privateRepo) throws URISyntaxException {
         this.tailrUri = new URI(tailrUri);
         this.user = user;
         this.token = token;
+        this.privateRepo = privateRepo;
     }
 
     public URI getTailrUri() {
@@ -104,12 +108,10 @@ public class TailrClient implements Tailr {
 
     private HttpGet getGet(String url) {
         HttpGet request = new HttpGet(url);
-        return request;
-    }
+        if (privateRepo) {
+            request.addHeader(HeaderConstants.AUTHORIZATION, "token " + this.token);
+        }
 
-    private HttpGet getAuthGet(String url) {
-        HttpGet request = new HttpGet(url);
-        request.addHeader(HeaderConstants.AUTHORIZATION, "token " + this.token);
         return request;
     }
 

@@ -92,7 +92,7 @@ public class TailrClientTest {
         Assert.assertThat(new URI("http://tailr.s16a.org/"), is(tlr.getTailrUri()));
         tlr.close();
 
-        tlr = TailrClient.getInstance("http://tailr.s16a.org/", "santifa", "123");
+        tlr = TailrClient.getInstance("http://tailr.s16a.org/", "santifa", "123", false);
         Assert.assertThat("123", is(tlr.getToken()));
         Assert.assertThat("santifa", is(tlr.getUser()));
         Assert.assertThat(new URI("http://tailr.s16a.org/"), is(tlr.getTailrUri()));
@@ -101,13 +101,13 @@ public class TailrClientTest {
 
     @Test(expected = URISyntaxException.class)
     public void testWrongBaseUri() throws URISyntaxException {
-        TailrClient.getInstance("mmn:\\ksdfjasa", "", "");
+        TailrClient.getInstance("mmn:\\ksdfjasa", "", "", false);
     }
 
     @Test
     public void testPutMemento() throws URISyntaxException, IOException {
         // insert key for test
-        TailrClient tlr = TailrClient.getInstance("http://tailr.s16a.org/", "santifa", "");
+        TailrClient tlr = TailrClient.getInstance("http://tailr.s16a.org/", "santifa", "", false);
         Repository repo = new Repository("santifa", "dwerft");
         String key = "http://example.org";
         String expected = "<http://filmontology.org/resource/Cast/12312> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://filmontology.org/ontology/1.0/Cast> .";
@@ -122,7 +122,7 @@ public class TailrClientTest {
 
     @Test
     public void testTailrGetDelta() throws URISyntaxException, IOException {
-        TailrClient tlr = TailrClient.getInstance("http://tailr.s16a.org/", "santifa", "");
+        TailrClient tlr = TailrClient.getInstance("http://tailr.s16a.org/", "santifa", "", false);
         Repository repo = new Repository("santifa", "dwerft");
         DateTime t = new DateTime();
         Memento mem = new Memento(repo, "http://example.org", t);
@@ -135,7 +135,7 @@ public class TailrClientTest {
 
     @Test
     public void testTailrGetLatestDelta() throws URISyntaxException, IOException {
-        TailrClient tlr = TailrClient.getInstance("http://tailr.s16a.org/", "santifa", "");
+        TailrClient tlr = TailrClient.getInstance("http://tailr.s16a.org/", "santifa", "", false);
         Repository repo = new Repository("santifa", "dwerft");
         DateTime t = new DateTime();
 
@@ -166,8 +166,8 @@ public class TailrClientTest {
 
     @Test
     public void testPutBigFile() throws URISyntaxException, IOException {
-        TailrClient tlr = TailrClient.getInstance("http://tailr.s16a.org/", "santifa", "");
-        Repository repo = new Repository("santifa", "dwerft");
+        TailrClient tlr = TailrClient.getInstance("http://tailr.s16a.org/", "santifa", "384a7406234809ef76689f8e725259e723926620", true);
+        Repository repo = new Repository("santifa", "test");
         String key = "ontology";
 
         /* load huge file */
@@ -181,5 +181,6 @@ public class TailrClientTest {
 
         Delta d = tlr.putMemento(repo, key, content);
         System.out.println(d);
+        System.out.println(tlr.prettifyTimemap(tlr.getMementos(repo, "ontology")));
     }
 }
