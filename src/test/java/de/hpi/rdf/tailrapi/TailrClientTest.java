@@ -18,6 +18,7 @@ import java.net.URL;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 /**
  * Created by magnus on 01.06.16.
@@ -87,15 +88,15 @@ public class TailrClientTest {
     @Test
     public void testCreateAndCloseClient() throws URISyntaxException {
         TailrClient tlr = TailrClient.getInstance();
-        Assert.assertThat("", is(tlr.getToken()));
-        Assert.assertThat("mgns", is(tlr.getUser()));
-        Assert.assertThat(new URI("http://tailr.s16a.org/"), is(tlr.getTailrUri()));
+        assertThat("", is(tlr.getToken()));
+        assertThat("mgns", is(tlr.getUser()));
+        assertThat(new URI("http://tailr.s16a.org/"), is(tlr.getTailrUri()));
         tlr.close();
 
         tlr = TailrClient.getInstance("http://tailr.s16a.org/", "santifa", "123", false);
-        Assert.assertThat("123", is(tlr.getToken()));
-        Assert.assertThat("santifa", is(tlr.getUser()));
-        Assert.assertThat(new URI("http://tailr.s16a.org/"), is(tlr.getTailrUri()));
+        assertThat("123", is(tlr.getToken()));
+        assertThat("santifa", is(tlr.getUser()));
+        assertThat(new URI("http://tailr.s16a.org/"), is(tlr.getTailrUri()));
         tlr.close();
     }
 
@@ -117,7 +118,7 @@ public class TailrClientTest {
         Delta expectedDelta = new Delta();
         expectedDelta.getRemovedTriples().add(expected);
         expectedDelta.getAddedTriples().add(content);
-        Assert.assertThat(expectedDelta, is(d));
+        assertThat(expectedDelta, is(d));
     }
 
     @Test
@@ -166,7 +167,7 @@ public class TailrClientTest {
 
     @Test
     public void testPutBigFile() throws URISyntaxException, IOException {
-        TailrClient tlr = TailrClient.getInstance("http://tailr.s16a.org/", "santifa", "384a7406234809ef76689f8e725259e723926620", true);
+        TailrClient tlr = TailrClient.getInstance("http://tailr.s16a.org/", "santifa", "", true);
         Repository repo = new Repository("santifa", "test");
         String key = "ontology";
 
@@ -183,5 +184,29 @@ public class TailrClientTest {
         System.out.println(tlr.prettifyTimemap(tlr.getMementos(repo, "ontology")));
         tlr.deleteMemento(tlr.getLatestMemento(repo, "ontology"));
         System.out.println(tlr.prettifyTimemap(tlr.getMementos(repo, "ontology")));
+    }
+
+    @Test
+    public void testGetPrivateMemento() throws URISyntaxException, IOException {
+        TailrClient tlr = TailrClient.getInstance("http://tailr.s16a.org/", "santifa", "384a7406234809ef76689f8e725259e723926620", true);
+        Repository repo = new Repository("santifa", "test");
+        String key = "ontology";
+
+        /* load huge file */
+        URL file = getClass().getResource("/dwerft-ontology_v2.ttl");
+
+        Model m = ModelFactory.createDefaultModel();
+        RDFDataMgr.read(m, file.openStream(), Lang.TTL);
+        StringWriter writer = new StringWriter();
+        RDFDataMgr.write(writer, m, Lang.NTRIPLES);
+        String content = writer.getBuffer().toString();
+
+        tlr.putMemento(repo, key, content);
+        List<Memento> mementos = tlr.getMementos(repo, "ontology");
+        assertThat(mementos.size(), is(1));
+        Graph g = mementos.get(0).resolve();
+        assertThat(g.isEmpty(), is(false));
+        /* clean repo */
+        tlr.deleteMemento(tlr.getLatestMemento(repo, "ontology"));
     }
 }

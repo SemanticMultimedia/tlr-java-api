@@ -98,6 +98,10 @@ public class TailrClient implements Tailr {
         return token;
     }
 
+    public boolean isPrivate() {
+        return privateRepo;
+    }
+
     /**
      * Close the tailr client. Actually this only
      * removes the pointer to the client instance.
@@ -212,8 +216,15 @@ public class TailrClient implements Tailr {
 
         if (jsonNode.get("mementos") != null) {
             for (JsonNode mementoNode: jsonNode.get("mementos").get("list")) {
-                Memento memento = new Memento(repo, key, mementoNode.get("datetime").textValue());
-                mementos.add(memento);
+                if (isPrivate()) {
+                    Memento memento = new Memento(repo, key, mementoNode.get("datetime").textValue(), isPrivate(), getToken());
+                    mementos.add(memento);
+
+                } else {
+                    Memento memento = new Memento(repo, key, mementoNode.get("datetime").textValue());
+                    mementos.add(memento);
+
+                }
             }
         }
 
