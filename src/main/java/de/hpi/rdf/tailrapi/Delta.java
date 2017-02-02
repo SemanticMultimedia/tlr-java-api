@@ -164,9 +164,9 @@ public class Delta {
         String insert = getInsertQuery(graph);
         String delete = getDeleteQuery(graph);
         if (!insert.isEmpty() && !delete.isEmpty()) {
-            return insert + "; " + delete;
+            return delete + "; " + insert;
         } else {
-            return  getInsertQuery(graph) + " " + getDeleteQuery(graph);
+            return getDeleteQuery(graph) + " " + getInsertQuery(graph);
         }
     }
 
